@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const canvas = document.getElementById("canvas");
     const context = canvas.getContext("2d");
+    const generationTimeDisplay = document.getElementById('generation-time');
     let gridSize = parseInt(document.getElementById('grid-size').value, 10);
     const size = 20;
     let isRunning = false;
@@ -77,16 +78,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function update() {
         if (!isRunning) return;
-        const newGrid = initArray(gridSize, gridSize);
 
+        const startTime = performance.now();
+        const newGrid = initArray(gridSize, gridSize);
         for (let x = 0; x < gridSize; x++) {
             for (let y = 0; y < gridSize; y++) {
                 newGrid[x][y] = updateCell(x, y);
             }
         }
-
         grid = newGrid;
         updateGrid();
+        const endTime = performance.now();
+        generationTimeDisplay.textContent = `Время генерации: ${(endTime - startTime).toFixed(2)} мс`;
     }
 
     document.getElementById('random').addEventListener('click', () => {
@@ -117,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isRunning) {
             clearInterval(intervalId);
             isRunning = false;
+            generationTimeDisplay.textContent = `Время генерации: 0.00 мс`;
         }
     });
 
