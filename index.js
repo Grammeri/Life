@@ -77,19 +77,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function update() {
-        if (!isRunning) return;
+        if (!isRunning) {
+            return;
+        }
 
         const startTime = performance.now();
         const newGrid = initArray(gridSize, gridSize);
+        let hasChanges = false;
+
         for (let x = 0; x < gridSize; x++) {
             for (let y = 0; y < gridSize; y++) {
                 newGrid[x][y] = updateCell(x, y);
+                if (newGrid[x][y] !== grid[x][y]) {
+                    hasChanges = true;
+                }
             }
         }
+
         grid = newGrid;
         updateGrid();
+
         const endTime = performance.now();
         generationTimeDisplay.textContent = `Время генерации: ${(endTime - startTime).toFixed(2)} мс`;
+
+        if (!hasChanges) {
+            stopGame();
+        }
+    }
+
+    function stopGame() {
+        clearInterval(intervalId);
+        isRunning = false;
+        generationTimeDisplay.textContent = ''; // Очистка времени генерации
     }
 
     document.getElementById('random').addEventListener('click', () => {
@@ -116,13 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('stop').addEventListener('click', () => {
-        if (isRunning) {
-            clearInterval(intervalId);
-            isRunning = false;
-            generationTimeDisplay.textContent = `Время генерации: 0.00 мс`;
-        }
-    });
+    document.getElementById('stop').addEventListener('click', stopGame);
 
     canvas.addEventListener('click', (event) => {
         if (isRunning) return;
