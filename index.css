@@ -1,0 +1,25 @@
+/* style.css */
+#game-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#grid {
+    display: inline-block;
+    border: 2px solid black;
+}
+
+#grid div {
+    display: flex;
+}
+
+#grid div span {
+    width: 20px;
+    height: 20px;
+    border: 1px solid grey;
+    box-sizing: border-box;
+}
+
+#controls {
+    margin-top: 20px;
+}
