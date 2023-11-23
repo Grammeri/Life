@@ -1,116 +1,134 @@
 document.addEventListener('DOMContentLoaded', function() {
-    let gridSize = document.getElementById('grid-size').value;
-    let grid = document.getElementById('grid');
-    let startButton = document.getElementById('start');
-    let stopButton = document.getElementById('stop');
-    let clearButton = document.getElementById('clear');
-    let randomButton = document.getElementById('random');
-    let generationTimeDisplay = document.getElementById('time');
-    let intervalId = null;
-    let cells = [];
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+    let gridSize = parseInt(document.getElementById('grid-size').value, 10);
+    const size = 20;
+    let isRunning = false;
+    let intervalId;
+    let grid = initArray(gridSize, gridSize);
 
-    // Функция для создания игрового поля
-    function createGrid(size) {
-        grid.innerHTML = '';
-        cells = [];
-        for (let i = 0; i < size; i++) {
-            let row = document.createElement('div');
-            let cellsRow = [];
-            for (let j = 0; j < size; j++) {
-                let cell = document.createElement('span');
-                cell.addEventListener('click', () => toggleCellState(i, j, cell));
-                row.appendChild(cell);
-                cellsRow.push({ alive: false, element: cell });
+    canvas.width = gridSize * size;
+    canvas.height = gridSize * size;
+
+    function initArray(w, h) {
+        const arr = [];
+        for (let x = 0; x < w; x++) {
+            arr[x] = [];
+            for (let y = 0; y < h; y++) {
+                arr[x][y] = 0;
             }
-            grid.appendChild(row);
-            cells.push(cellsRow);
+        }
+        return arr;
+    }
+
+    function draw(x, y, alive) {
+        context.fillStyle = alive ? 'black' : 'white';
+        context.fillRect(x * size, y * size, size, size);
+    }
+
+    function drawGrid() {
+        for (let x = 0; x <= gridSize; x++) {
+            context.beginPath();
+            context.moveTo(x * size, 0);
+            context.lineTo(x * size, gridSize * size);
+            context.strokeStyle = 'grey';
+            context.stroke();
+        }
+
+        for (let y = 0; y <= gridSize; y++) {
+            context.beginPath();
+            context.moveTo(0, y * size);
+            context.lineTo(gridSize * size, y * size);
+            context.strokeStyle = 'grey';
+            context.stroke();
         }
     }
 
-    // Функция для переключения состояния клетки
-    function nextGeneration() {
-        let startTime = performance.now();
+    function updateGrid() {
+        for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+                draw(x, y, grid[x][y]);
+            }
+        }
+        drawGrid();
+    }
 
-        let changes = [];
-        console.log("Calculating next generation...");
+    function cellValue(x, y) {
+        x = (x + gridSize) % gridSize;
+        y = (y + gridSize) % gridSize;
+        return grid[x][y];
+    }
 
-        for (let i = 0; i < gridSize; i++) {
-            for (let j = 0; j < gridSize; j++) {
-                let alive = 0;
-                for (let x = -1; x <= 1; x++) {
-                    for (let y = -1; y <= 1; y++) {
-                        if (x === 0 && y === 0) continue;
-                        let ni = (i + x + gridSize) % gridSize;
-                        let nj = (j + y + gridSize) % gridSize;
-                        if (cells[ni][nj].alive) alive++;
-                    }
-                }
+    function countNeighbours(x, y) {
+        let count = 0;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (dx === 0 && dy === 0) continue;
+                if (cellValue(x + dx, y + dy)) count++;
+            }
+        }
+        return count;
+    }
 
-                let cell = cells[i][j];
-                if (cell.alive && (alive < 2 || alive > 3)) {
-                    changes.push({ x: i, y: j, state: false });
-                    console.log(`Cell at (${i}, ${j}) dies.`);
-                } else if (!cell.alive && alive === 3) {
-                    changes.push({ x: i, y: j, state: true });
-                    console.log(`Cell at (${i}, ${j}) becomes alive.`);
-                }
+    function updateCell(x, y) {
+        const neighbours = countNeighbours(x, y);
+        return grid[x][y] ? (neighbours === 2 || neighbours === 3) : (neighbours === 3);
+    }
+
+    function update() {
+        if (!isRunning) return;
+        const newGrid = initArray(gridSize, gridSize);
+
+        for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+                newGrid[x][y] = updateCell(x, y);
             }
         }
 
-        console.log(`Applying ${changes.length} changes.`);
-        changes.forEach(change => {
-            cells[change.x][change.y].alive = change.state;
-            cells[change.x][change.y].element.style.backgroundColor = change.state ? 'black' : 'white';
-        });
-
-        let endTime = performance.now();
-        generationTimeDisplay.textContent = (endTime - startTime).toFixed(2);
+        grid = newGrid;
+        updateGrid();
     }
 
-
-
-    // Функция для случайной генерации первого поколения
-    function randomGeneration() {
-        for (let i = 0; i < gridSize; i++) {
-            for (let j = 0; j < gridSize; j++) {
-                let isAlive = Math.random() > 0.5;
-                cells[i][j].alive = isAlive;
-                cells[i][j].element.style.backgroundColor = isAlive ? 'black' : 'white';
+    document.getElementById('random').addEventListener('click', () => {
+        for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+                grid[x][y] = Math.random() > 0.5;
             }
         }
-    }
+        updateGrid();
+    });
 
-    // Обработчики событий для управления игрой
-    startButton.addEventListener('click', () => {
-        if (!intervalId) {
-            intervalId = setInterval(nextGeneration, 500);
+    document.getElementById('change-size').addEventListener('click', () => {
+        gridSize = parseInt(document.getElementById('grid-size').value, 10);
+        canvas.width = gridSize * size;
+        canvas.height = gridSize * size;
+        grid = initArray(gridSize, gridSize);
+        updateGrid();
+    });
+
+    document.getElementById('start').addEventListener('click', () => {
+        if (!isRunning) {
+            isRunning = true;
+            intervalId = setInterval(update, 500);
         }
     });
 
-    stopButton.addEventListener('click', () => {
-        if (intervalId) {
+    document.getElementById('stop').addEventListener('click', () => {
+        if (isRunning) {
             clearInterval(intervalId);
-            intervalId = null;
+            isRunning = false;
         }
     });
 
-    clearButton.addEventListener('click', () => {
-        if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-        }
-        createGrid(gridSize);
+    canvas.addEventListener('click', (event) => {
+        if (isRunning) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((event.clientX - rect.left) / size);
+        const y = Math.floor((event.clientY - rect.top) / size);
+        grid[x][y] = !grid[x][y];
+        updateGrid();
     });
 
-    // Обработчик события для случайной генерации первого поколения
-    randomButton.addEventListener('click', randomGeneration);
-
-    // Обработчик события для изменения размера поля
-    document.getElementById('grid-size').addEventListener('change', (e) => {
-        gridSize = e.target.value;
-        createGrid(gridSize);
-    });
-
-    // Инициализация игрового поля
-    createGrid(gridSize);
+    updateGrid();
 });
